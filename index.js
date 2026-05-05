@@ -8,8 +8,7 @@ dotenv.config();
 const app = express();
 
 const APP_URL = process.env.APP_URL;
-
-app.use(cors(APP_URL));
+app.use(cors({ origin: APP_URL }));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -21,5 +20,5 @@ app.use(emailRoutes);
 const PORT = process.env.PORT || 4500;
 app.listen(PORT, () => {
   connectDB();
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}, allowed Origin: ${APP_URL}`);
 });
