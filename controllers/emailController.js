@@ -9,13 +9,13 @@ const validateEmail = (email) => {
   return regex.test(email);
 };
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USERNAME,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: process.env.SMTP_USERNAME,
+//     pass: process.env.SMTP_PASSWORD,
+//   },
+// });
 
 export const handleEmail = async (req, res) => {
   try {
@@ -35,13 +35,13 @@ export const handleEmail = async (req, res) => {
     });
     await newUser.save();
 
-    // Send email
-    await transporter.sendMail({
-      from: process.env.SMTP_USERNAME,
-      to: newUser.email,
-      subject: 'Welcome to Chapter Dev Waitlist!',
-      html: waitlistTemplate({ name: newUser.name }),
-    });
+    // // Send email
+    //  transporter.sendMail({ 
+    //   from: process.env.SMTP_USERNAME,
+    //   to: newUser.email,
+    //   subject: 'Welcome to Chapter Dev Waitlist!',
+    //   html: waitlistTemplate({ name: newUser.name }),
+    // });
 
     console.log(`Waitlist user added and email sent: ${newUser.email}`);
     res.json({ message: 'Joined waitlist successfully!', email: newUser.email });
