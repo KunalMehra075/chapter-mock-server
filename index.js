@@ -7,8 +7,7 @@ dotenv.config();
 
 const app = express();
 
-const APP_URL = process.env.APP_URL;
-app.use(cors({ origin: APP_URL }));
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
