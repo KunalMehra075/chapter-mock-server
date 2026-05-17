@@ -17,9 +17,9 @@ Goal: scalable, production-grade RBAC system for the admin dashboard.
 
 Three admin roles, all stored in a single `ChapterAdmins` model:
 
-1. **Operator** — full system access; manages admins, RBAC, everything
-2. **SuperUser** — access to all dashboard modules; manages application users and admins; cannot manage operators or other superusers; cannot manage RBAC
-3. **Admin** — limited module access; only assigned modules; cannot manage users/admins/operators or RBAC
+1. **Tenet** — full system access; manages admins, RBAC, everything
+2. **Operator** — access to all dashboard modules; manages application users and admins; cannot manage tenets or other operators; cannot manage RBAC
+3. **Admin** — limited module access; only assigned modules; cannot manage users/admins/tenets or RBAC
 
 Application end-users (the "Users" of the Chapter app) are **out of scope** for this plan — no separate `Users` model will be created yet.
 
@@ -33,7 +33,7 @@ Single model for all three admin roles.
 {
   email:               string  (unique, lowercased, trimmed)
   password:            string  (bcrypt hash; auto-generated at creation, replaced on first login)
-  role:                "operator" | "superuser" | "admin"
+  role:                "tenet" | "operator" | "partner"
   access:              string[] (permissions)
 
   // Invite tracking — set at creation, cleared once the user completes first-login password change
@@ -126,16 +126,16 @@ body: { firstLoginToken, newPassword }
 
 ---
 
-## Invite Flow (new admin creation by Operator / SuperUser)
+## Invite Flow (new admin creation by Tenet / Operator)
 
-When an Operator creates a SuperUser/Admin (or a SuperUser creates an Admin), the system auto-generates credentials and emails them to the new user. The user logs in once with those credentials, is forced to change their password, and only then becomes a fully active admin.
+When an Tenet creates a Operator/Admin (or a Operator creates an Admin), the system auto-generates credentials and emails them to the new user. The user logs in once with those credentials, is forced to change their password, and only then becomes a fully active admin.
 
 ### Creation step
 
 ```
-POST /api/admins            permit("admins:create")
-POST /api/superusers        permit("superusers:create")
-POST /api/operators         permit("operators:create")
+POST /api/partners            permit("partners:create")
+POST /api/operators        permit("operators:create")
+POST /api/tenets         permit("tenets:create")
 body: { email, access?: string[] }
 → 201 { id, email, role, access, inviteExpiresAt }
 ```
@@ -172,9 +172,9 @@ Behavior:
 If the invite expired, or the user lost the email, the original inviter (or any admin with `:update` permission on that role) can re-issue:
 
 ```
-POST /api/admins/:id/resend-invite        permit("admins:update")
-POST /api/superusers/:id/resend-invite    permit("superusers:update")
-POST /api/operators/:id/resend-invite     permit("operators:update")
+POST /api/partners/:id/resend-invite        permit("partners:update")
+POST /api/operators/:id/resend-invite    permit("operators:update")
+POST /api/tenets/:id/resend-invite     permit("tenets:update")
 → 200 { id, email, role, inviteExpiresAt }
 ```
 
@@ -221,21 +221,21 @@ When a logged-in admin clicks "Change password" in the dashboard, the FE calls `
 
 ---
 
-## Admin Management APIs (Operator / SuperUser / Admin CRUD)
+## Admin Management APIs (Tenet / Operator / Admin CRUD)
 
 All three roles live in the same `ChapterAdmins` collection but are exposed via **three separate route groups**, each gated by its own permission module. This keeps RBAC declarative and avoids per-controller role logic.
 
 ### Permission rules
 
-| Module       | Operator | SuperUser | Admin |
+| Module       | Tenet | Operator | Admin |
 |--------------|----------|-----------|-------|
-| `operators:*`  | ✓ (via `*`) | ✗ | ✗ |
-| `superusers:*` | ✓ (via `*`) | ✗ | ✗ |
-| `admins:*`     | ✓ (via `*`) | ✓ | ✗ |
+| `tenets:*`  | ✓ (via `*`) | ✗ | ✗ |
+| `operators:*` | ✓ (via `*`) | ✗ | ✗ |
+| `partners:*`     | ✓ (via `*`) | ✓ | ✗ |
 
 So:
-- **Operator** can CRUD operators, superusers, admins (via `*`)
-- **SuperUser** can CRUD admins only
+- **Tenet** can CRUD tenets, operators, admins (via `*`)
+- **Operator** can CRUD admins only
 - **Admin** cannot manage any admin records
 
 ### Routes
@@ -243,26 +243,26 @@ So:
 Identical CRUD shape for all three groups; only the role created/managed differs.
 
 ```
-POST   /api/operators                    permit("operators:create")
-GET    /api/operators                    permit("operators:read")
-GET    /api/operators/:id                permit("operators:read")
-PUT    /api/operators/:id                permit("operators:update")
-DELETE /api/operators/:id                permit("operators:delete")
-POST   /api/operators/:id/resend-invite  permit("operators:update")
+POST   /api/tenets                    permit("tenets:create")
+GET    /api/tenets                    permit("tenets:read")
+GET    /api/tenets/:id                permit("tenets:read")
+PUT    /api/tenets/:id                permit("tenets:update")
+DELETE /api/tenets/:id                permit("tenets:delete")
+POST   /api/tenets/:id/resend-invite  permit("tenets:update")
 
-POST   /api/superusers                   permit("superusers:create")
-GET    /api/superusers                   permit("superusers:read")
-GET    /api/superusers/:id               permit("superusers:read")
-PUT    /api/superusers/:id               permit("superusers:update")
-DELETE /api/superusers/:id               permit("superusers:delete")
-POST   /api/superusers/:id/resend-invite permit("superusers:update")
+POST   /api/operators                   permit("operators:create")
+GET    /api/operators                   permit("operators:read")
+GET    /api/operators/:id               permit("operators:read")
+PUT    /api/operators/:id               permit("operators:update")
+DELETE /api/operators/:id               permit("operators:delete")
+POST   /api/operators/:id/resend-invite permit("operators:update")
 
-POST   /api/admins                       permit("admins:create")
-GET    /api/admins                       permit("admins:read")
-GET    /api/admins/:id                   permit("admins:read")
-PUT    /api/admins/:id                   permit("admins:update")
-DELETE /api/admins/:id                   permit("admins:delete")
-POST   /api/admins/:id/resend-invite     permit("admins:update")
+POST   /api/partners                       permit("partners:create")
+GET    /api/partners                       permit("partners:read")
+GET    /api/partners/:id                   permit("partners:read")
+PUT    /api/partners/:id                   permit("partners:update")
+DELETE /api/partners/:id                   permit("partners:delete")
+POST   /api/partners/:id/resend-invite     permit("partners:update")
 ```
 
 All require `authenticate` middleware first.
@@ -270,7 +270,7 @@ All require `authenticate` middleware first.
 ### Update endpoint
 
 ```
-PUT /api/admins/:id
+PUT /api/partners/:id
 body: { email?, access?: string[] }
 → 200 { id, email, role, access }
 ```
@@ -285,26 +285,26 @@ Hard delete. The deleted user's refresh tokens must be invalidated as part of th
 
 ### Cross-role safety
 
-Because each endpoint is bound to one role and one permission module, a SuperUser holding `admins:*` literally cannot hit `/api/superusers` or `/api/operators` — the `permit()` middleware blocks them. **No hardcoded role checks needed in controllers.**
+Because each endpoint is bound to one role and one permission module, a Operator holding `partners:*` literally cannot hit `/api/operators` or `/api/tenets` — the `permit()` middleware blocks them. **No hardcoded role checks needed in controllers.**
 
-A controller-level guard still applies: the `findById`/`update`/`delete` queries should be scoped by `role` (e.g. `{ _id, role: "admin" }`) so the admins endpoint cannot accidentally operate on a superuser document via a guessed ID.
+A controller-level guard still applies: the `findById`/`update`/`delete` queries should be scoped by `role` (e.g. `{ _id, role: "partner" }`) so the admins endpoint cannot accidentally operate on a operator document via a guessed ID.
 
 ---
 
-## Operator Bootstrap
+## Tenet Bootstrap
 
-On server startup, check if an operator exists. If none, auto-create:
+On server startup, check if an tenet exists. If none, auto-create:
 
 ```
-email:              operator@chapter.com
-password:           operator123   (bcrypt-hashed)
-role:               operator
+email:              tenet@chapter.com
+password:           tenet123   (bcrypt-hashed)
+role:               tenet
 access:             ["*"]
-mustChangePassword: true            (bootstrap operator should rotate immediately)
+mustChangePassword: true            (bootstrap tenet should rotate immediately)
 inviteExpiresAt:    now + 24h
 ```
 
-This solves the chicken-and-egg of the first admin. Bootstrap must be **idempotent** — runs on every start but only creates if missing. Because `mustChangePassword: true`, the bootstrap operator will be forced through the same change-password flow as any invited user on their first real login.
+This solves the chicken-and-egg of the first admin. Bootstrap must be **idempotent** — runs on every start but only creates if missing. Because `mustChangePassword: true`, the bootstrap tenet will be forced through the same change-password flow as any invited user on their first real login.
 
 ---
 
@@ -328,16 +328,16 @@ Must support all three patterns above.
 ### Default `access` per role
 
 ```
-Operator:  ["*"]
+Tenet:  ["*"]
 
-SuperUser: [
+Operator: [
   "dashboard:*",
   "users:*",
   "orders:*",
   "analytics:*",
   "waitlist:*",
   "stats:*",
-  "admins:*"
+  "partners:*"
 ]
 
 Admin:     ["orders:read", "orders:update", "analytics:read"]
@@ -348,7 +348,7 @@ Admin:     ["orders:read", "orders:update", "analytics:read"]
 ### Permission modules (initial set)
 
 ```
-operators, superusers, admins     — admin management
+tenets, operators, admins     — admin management
 waitlist, stats                   — existing data routes
 dashboard, users, orders, analytics — placeholder modules for future features
 ```
@@ -367,7 +367,7 @@ Two distinct middlewares:
 router.get("/api/stats", authenticate, permit("stats:read"), getStats);
 ```
 
-**No hardcoded role checks anywhere.** Never `if (role === "admin")`. Always `hasPermission()` via `permit()`.
+**No hardcoded role checks anywhere.** Never `if (role === "partner")`. Always `hasPermission()` via `permit()`.
 
 The `authenticate` middleware additionally enforces that `mustChangePassword === false` — i.e. invite-pending users cannot access protected routes with a stale token. (Pending users only get a `firstLoginToken`, which is purpose-restricted to `complete-invite` anyway, so this is belt-and-suspenders.)
 
@@ -408,8 +408,8 @@ email/
 
 ### Template contents (basic HTML, brand-light for now — can be styled later)
 
-**`chapterAdminInvitation.ts`** — sent on admin/superuser/operator creation and resend
-- Greeting + role context ("You've been invited as a SuperUser to the Chapter admin dashboard")
+**`chapterAdminInvitation.ts`** — sent on admin/operator/tenet creation and resend
+- Greeting + role context ("You've been invited as a Operator to the Chapter admin dashboard")
 - Credentials block: email + temp password (monospace, clearly delimited)
 - Login link → `{FRONTEND_URL}/login`
 - Warning: "This invitation expires in 24 hours. You will be required to change your password on first login."
@@ -441,16 +441,16 @@ chapter-admin-mock-server/
     waitlistController.ts
     statsController.ts
     authController.ts         (new — login, refresh, logout, complete-invite, request-reset, reset-password)
-    operatorsController.ts    (new — CRUD + resend-invite for operator role)
-    superusersController.ts   (new — CRUD + resend-invite for superuser role)
-    adminsController.ts       (new — CRUD + resend-invite for admin role)
+    tenetsController.ts    (new — CRUD + resend-invite for tenet role)
+    operatorsController.ts   (new — CRUD + resend-invite for operator role)
+    partnersController.ts       (new — CRUD + resend-invite for admin role)
   routes/
     waitlistRoutes.ts
     statsRoutes.ts
     authRoutes.ts             (new)
-    operatorsRoutes.ts        (new)
-    superusersRoutes.ts       (new)
-    adminsRoutes.ts           (new)
+    tenetsRoutes.ts        (new)
+    operatorsRoutes.ts       (new)
+    partnersRoutes.ts           (new)
   middleware/
     authenticate.ts
     permit.ts
@@ -463,7 +463,7 @@ chapter-admin-mock-server/
     permissions.ts            (module/action constants)
     roles.ts                  (role + default-access constants)
   seeders/
-    operatorSeeder.ts         (idempotent bootstrap, called from index.ts)
+    tenetSeeder.ts         (idempotent bootstrap, called from index.ts)
   email/
     templates/
       waitlist.ts
@@ -532,9 +532,9 @@ When implementing, deliver:
 - `hasPermission` utility with all three matching patterns
 - `permissions.ts` + `roles.ts` constants
 - `generatePassword.ts` utility (crypto-random temp password)
-- Operator seeder wired into startup
+- Tenet seeder wired into startup
 - Auth controller: `login`, `refresh`, `logout`, `complete-invite`, `request-password-reset`, `reset-password`
-- Operator/SuperUser/Admin CRUD controllers + routes (auto-generated-password invite flow + resend-invite)
+- Tenet/Operator/Admin CRUD controllers + routes (auto-generated-password invite flow + resend-invite)
 - Updated waitlist + stats routes with middleware applied
 - Refactored `email/` module + new `chapterAdminInvitation` and `passwordReset` HTML templates
 - No pseudo-code — working TypeScript only

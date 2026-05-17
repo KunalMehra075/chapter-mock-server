@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 import { ROLES, Role } from "../constants/roles.js";
 
 export interface IChapterAdmin extends Document {
@@ -8,7 +8,7 @@ export interface IChapterAdmin extends Document {
   phone: string | null;
   address: string | null;
   role: Role;
-  access: string[];
+  adminGroupId: Types.ObjectId | null;
   inviteExpiresAt: Date | null;
   mustChangePassword: boolean;
   resetTokenHash: string | null;
@@ -51,9 +51,10 @@ const chapterAdminSchema = new Schema<IChapterAdmin>(
       enum: Object.values(ROLES),
       required: true,
     },
-    access: {
-      type: [String],
-      default: [],
+    adminGroupId: {
+      type: Schema.Types.ObjectId,
+      ref: "AdminGroups",
+      default: null,
     },
     inviteExpiresAt: {
       type: Date,

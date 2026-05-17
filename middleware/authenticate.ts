@@ -1,7 +1,16 @@
 import { Request, Response, NextFunction } from "express";
-import ChapterAdmins from "../models/ChapterAdmins.js";
+import ChapterAdmins, { IChapterAdmin } from "../models/ChapterAdmins.js";
+import AdminGroups from "../models/AdminGroups.js";
+import { DEFAULT_ACCESS, ROLES } from "../constants/roles.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 import "./types.js";
+
+export const resolveAccess = async (user: IChapterAdmin): Promise<string[]> => {
+  if (user.role === ROLES.TENET) return DEFAULT_ACCESS[ROLES.TENET];
+  if (!user.adminGroupId) return [];
+  const group = await AdminGroups.findById(user.adminGroupId).select("access");
+  return group?.access ?? [];
+};
 
 export const authenticate = async (
   req: Request,
@@ -34,11 +43,13 @@ export const authenticate = async (
       return;
     }
 
+    const access = await resolveAccess(user);
+
     req.user = {
       id: String(user._id),
       email: user.email,
       role: user.role,
-      access: user.access,
+      access,
     };
     next();
   } catch {

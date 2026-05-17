@@ -3,15 +3,17 @@ import { ACTIONS, MODULES, WILDCARD } from "../constants/permissions.js";
 import { DEFAULT_ACCESS, ROLES } from "../constants/roles.js";
 
 const MODULE_LABELS: Record<string, string> = {
+  [MODULES.TENETS]: "Tenets",
   [MODULES.OPERATORS]: "Operators",
-  [MODULES.SUPERUSERS]: "SuperUsers",
-  [MODULES.ADMINS]: "Admins",
+  [MODULES.PARTNERS]: "Partners",
+  [MODULES.ADMIN_GROUPS]: "Admin Groups",
   [MODULES.WAITLIST]: "Waitlist",
   [MODULES.STATS]: "Stats",
   [MODULES.DASHBOARD]: "Dashboard",
   [MODULES.USERS]: "Users",
   [MODULES.ORDERS]: "Orders",
   [MODULES.ANALYTICS]: "Analytics",
+  [MODULES.BOTTLE_MESSAGES]: "Bottle Messages",
 };
 
 export const getPermissionsCatalog = (_req: Request, res: Response): void => {
@@ -29,9 +31,9 @@ export const getPermissionsCatalog = (_req: Request, res: Response): void => {
       actions,
       modules,
       defaultAccess: {
+        tenet: DEFAULT_ACCESS[ROLES.TENET],
         operator: DEFAULT_ACCESS[ROLES.OPERATOR],
-        superuser: DEFAULT_ACCESS[ROLES.SUPERUSER],
-        admin: DEFAULT_ACCESS[ROLES.ADMIN],
+        partner: DEFAULT_ACCESS[ROLES.PARTNER],
       },
     },
   });

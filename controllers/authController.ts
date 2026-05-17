@@ -10,6 +10,7 @@ import {
   verifyRefreshToken,
   verifyFirstLoginToken,
 } from "../utils/jwt.js";
+import { resolveAccess } from "../middleware/authenticate.js";
 import { generateResetToken, hashResetToken } from "../utils/resetToken.js";
 import {
   sendEmail,
@@ -23,7 +24,7 @@ const RESET_TOKEN_TTL_MIN = parseInt(process.env.RESET_TOKEN_TTL_MIN || "10", 10
 const issueSession = (user: {
   id: string;
   email: string;
-  role: "operator" | "superuser" | "admin";
+  role: "tenet" | "operator" | "partner";
 }) => {
   const accessToken = signAccessToken({
     sub: user.id,
@@ -83,9 +84,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       email: user.email,
       role: user.role,
     });
+    const access = await resolveAccess(user);
     res.json({
       ...tokens,
-      user: { email: user.email, role: user.role, access: user.access },
+      user: { email: user.email, role: user.role, access },
     });
   } catch (error) {
     console.error("Error during login:", error);
@@ -138,9 +140,10 @@ export const completeInvite = async (req: Request, res: Response): Promise<void>
       email: user.email,
       role: user.role,
     });
+    const access = await resolveAccess(user);
     res.json({
       ...tokens,
-      user: { email: user.email, role: user.role, access: user.access },
+      user: { email: user.email, role: user.role, access },
     });
   } catch (error) {
     console.error("Error completing invite:", error);
@@ -232,6 +235,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ error: "User not found" });
       return;
     }
+    const access = await resolveAccess(user);
     res.json({
       data: {
         id: String(user._id),
@@ -240,7 +244,8 @@ export const me = async (req: Request, res: Response): Promise<void> => {
         phone: user.phone,
         address: user.address,
         role: user.role,
-        access: user.access,
+        adminGroupId: user.adminGroupId ? String(user.adminGroupId) : null,
+        access,
       },
     });
   } catch (error) {

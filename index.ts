@@ -5,11 +5,14 @@ import connectDB from "./db/connection.js";
 import waitlistRoutes from "./routes/waitlistRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import tenetsRoutes from "./routes/tenetsRoutes.js";
 import operatorsRoutes from "./routes/operatorsRoutes.js";
-import superusersRoutes from "./routes/superusersRoutes.js";
-import adminsRoutes from "./routes/adminsRoutes.js";
+import partnersRoutes from "./routes/partnersRoutes.js";
+import adminGroupsRoutes from "./routes/adminGroupsRoutes.js";
 import permissionsRoutes from "./routes/permissionsRoutes.js";
-import { seedOperator } from "./seeders/operatorSeeder.js";
+import bottleMessagesPublicRoutes from "./routes/bottleMessagesPublicRoutes.js";
+import bottleMessagesAdminRoutes from "./routes/bottleMessagesAdminRoutes.js";
+import { seedTenet } from "./seeders/tenetSeeder.js";
 dotenv.config();
 
 const app = express();
@@ -36,17 +39,23 @@ app.get("/", (_req, res) => {
   res.send("Hello from Chapter Landing Page Server");
 });
 
-app.use(authRoutes);
+// Public Routes
+app.use(bottleMessagesPublicRoutes);
+
+// Private Rutes
 app.use(waitlistRoutes);
+app.use(authRoutes);
 app.use(statsRoutes);
+app.use(tenetsRoutes);
 app.use(operatorsRoutes);
-app.use(superusersRoutes);
-app.use(adminsRoutes);
+app.use(partnersRoutes);
+app.use(adminGroupsRoutes);
 app.use(permissionsRoutes);
+app.use(bottleMessagesAdminRoutes);
 
 const PORT = process.env.PORT || 4500;
 app.listen(PORT, async () => {
   await connectDB();
-  await seedOperator();
+  await seedTenet();
   console.log(`Server is running on port ${PORT}`);
 });

@@ -10,9 +10,9 @@ interface InvitationTemplateParams {
 }
 
 const roleLabel = (role: Role): string => {
+  if (role === "tenet") return "a Tenet";
   if (role === "operator") return "an Operator";
-  if (role === "superuser") return "a SuperUser";
-  return "an Admin";
+  return "a Partner";
 };
 
 export const chapterAdminInvitationTemplate = ({

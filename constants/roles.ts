@@ -1,23 +1,24 @@
 import { WILDCARD } from "./permissions.js";
 
 export const ROLES = {
+  TENET: "tenet",
   OPERATOR: "operator",
-  SUPERUSER: "superuser",
-  ADMIN: "admin",
+  PARTNER: "partner",
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const DEFAULT_ACCESS: Record<Role, string[]> = {
-  [ROLES.OPERATOR]: [WILDCARD],
-  [ROLES.SUPERUSER]: [
+  [ROLES.TENET]: [WILDCARD],
+  [ROLES.OPERATOR]: [
     "dashboard:*",
     "users:*",
     "orders:*",
     "analytics:*",
     "waitlist:*",
     "stats:*",
-    "admins:*",
+    "partners:*",
+    "adminGroups:*",
   ],
-  [ROLES.ADMIN]: ["orders:read", "orders:update", "analytics:read"],
+  [ROLES.PARTNER]: ["orders:read", "orders:update", "analytics:read"],
 };
